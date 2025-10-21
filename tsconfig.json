@@ -5,10 +5,11 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "esModuleInterop": true,
+    "moduleResolution": "node",
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "commonjs",
-    "target": "esnext",
+    "module": "esnext",
+    "target": "es2022",
     "types": [],
     // For nodejs:
     // "lib": ["esnext"],
