@@ -21,6 +21,8 @@ export class TelegramEventService {
         });
       }
     );
+
+    // REGEX to match any command /.*/
     this.command$ = fromEventPattern<{ ctx: Context; command: string }>(
       (handler) => {
         this.bot.command(/.*/, (ctx) => {
