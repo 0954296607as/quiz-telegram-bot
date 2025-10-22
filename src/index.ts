@@ -5,7 +5,7 @@ async function main() {
         const bot = new BotService();
         await bot.start();
     } catch (err) {
-        console.error("Ошибка при запуске:", err);
+        console.error("Error:", err);
     }
 }
 
