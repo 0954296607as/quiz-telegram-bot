@@ -17,14 +17,16 @@ export class BotService {
     public async start(): Promise<void> {
         await this.telegramEventService.botLaunch();
 
+        this.telegramEventService.command$.subscribe(({ ctx, command }) => {
+            console.log(`Received command: ${command} from ${ctx.from?.first_name}`);
+            ctx.reply(`Command received: ${command}`);
+        });
+
         this.telegramEventService.message$.subscribe(({ ctx, text }) => {
             console.log(`Received message: ${text} from ${ctx.from?.first_name}`);
             ctx.reply(`You said: ${text}`);
         });
 
-        this.telegramEventService.command$.subscribe(({ ctx, command }) => {
-            console.log(`Received command: ${command} from ${ctx.from?.first_name}`);
-            ctx.reply(`Command received: ${command}`);
-        });
     }
+
 }
