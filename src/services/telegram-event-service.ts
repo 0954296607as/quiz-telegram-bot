@@ -7,6 +7,7 @@ export class TelegramEventService {
   private isRunning: boolean = false;
   public message$!: Observable<{ ctx: Context; text: string }>;
   public command$!: Observable<{ ctx: Context; command: string }>;
+  public middleware$!: Observable<{ ctx: Context, userID: number }>;
 
   constructor(token: string) {
     this.bot = new Telegraf<Context>(token);;
@@ -29,6 +30,15 @@ export class TelegramEventService {
           handler({ ctx, command: ctx.message.text });
         });
       });
+
+    this.middleware$ = fromEventPattern<{ ctx: Context, userID: number }>(
+      (handler) => {
+        this.bot.use((ctx, next) => {
+          handler({ ctx, userID: ctx.from?.id || 0 });
+          return next();
+        });
+      }
+    );
   }
 
   public async botLaunch() {
