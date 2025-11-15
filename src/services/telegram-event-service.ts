@@ -2,11 +2,15 @@ import { fromEventPattern, Observable } from "rxjs";
 import { Context, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
 
+export type TelegramMessageHandler = (ctx: Context, text: string) => void;
+export type TelegramCommandHandler = {ctx: Context, command: string};
+export type TelegramMiddlewareHandler = (ctx: Context, userID: number) => void;
+
 export class TelegramEventService {
   private bot: Telegraf<Context>;
   private isRunning: boolean = false;
   public message$!: Observable<{ ctx: Context; text: string }>;
-  public command$!: Observable<{ ctx: Context; command: string }>;
+  public command$!: Observable<TelegramCommandHandler>;
   public middleware$!: Observable<{ ctx: Context, userID: number }>;
 
   constructor(token: string) {
@@ -24,7 +28,7 @@ export class TelegramEventService {
     );
 
     // REGEX to match any command /.*/
-    this.command$ = fromEventPattern<{ ctx: Context; command: string }>(
+    this.command$ = fromEventPattern<TelegramCommandHandler>(
       (handler) => {
         this.bot.command(/.*/, (ctx) => {
           handler({ ctx, command: ctx.message.text });
