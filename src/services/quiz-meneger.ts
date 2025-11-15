@@ -1,4 +1,4 @@
-import { of, tap, timeout } from 'rxjs';
+import { delay, of, tap } from 'rxjs';
 import { Context } from 'telegraf';
 import { DatabaseService } from '../db/database-sevice';
 import { Question } from '../models/question';
@@ -47,15 +47,15 @@ export class QuizManager {
     const userAnswer = ctx.message && 'text' in ctx.message ? ctx.message.text.trim() : '';
     const correct = userAnswer.toLowerCase() === rightAnswer.toLowerCase();
 
-    ctx.reply(correct ? '✅' : `❌ ${state.currentQuestion.row_data?.[1]}`);
+    ctx.reply(correct ? '✅ Richtig!' : `❌ ${state.currentQuestion.row_data?.[1]}`);
 
     // загружаем следующий вопрос
     return this.repo.getNextQuestion(state.sheetId!).pipe(
-      timeout(500),
+      delay(300),
       tap(nextQuestion => {
         if (nextQuestion) {
           this.users.set(userId, { sheetId: state.sheetId ?? 0, currentQuestion: nextQuestion });
-          ctx.reply(`🧩 ${nextQuestion.row_data[0]}`);
+          ctx.reply(`${nextQuestion.row_data[0]}`);
         } else {
           ctx.reply('🏁');
         }
