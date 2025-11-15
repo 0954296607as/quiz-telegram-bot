@@ -1,7 +1,7 @@
-import { concatMap, last, map, Observable, of, Subscription, switchMap, tap } from "rxjs";
+import { concatMap, last, lastValueFrom, map, Observable, of, Subscription, switchMap, tap } from "rxjs";
 import { Markup } from "telegraf";
 import Context from "telegraf/typings/context";
-import { DatabaseService } from "../db/database-sevice";
+import { QuestionsRepository } from "../db/questions-repository";
 import { ISheetCommunicator } from "../models/ISheetCommunicator";
 import { SpreadSheetDto } from "../models/spread-sheet-dto";
 import { GoogleSheetsService } from "./google-sheets-service";
@@ -15,7 +15,7 @@ export class BotService {
     private middlewareListener: Subscription | null = null;
     private messageListener: Subscription | null = null;
     private sheetService: ISheetCommunicator;
-    private dbservice: DatabaseService;
+    private questionRepository: QuestionsRepository;
     private quizManager: QuizManager;
 
     constructor() {
@@ -29,12 +29,13 @@ export class BotService {
         }
         this.telegramEventService = new TelegramEventService(token);
         this.sheetService = new GoogleSheetsService(creadentials);
-        this.dbservice = DatabaseService.getInstance();
-        this.quizManager = new QuizManager();
+        this.questionRepository = new QuestionsRepository();
+        this.quizManager = new QuizManager(this.questionRepository);
     }
 
     public async start(): Promise<void> {
         await this.telegramEventService.botLaunch();
+        await lastValueFrom(this.questionRepository.init());
         this.startMiddlewareListener();
         this.startCommandsListener();
         this.startMessageListener();
@@ -124,7 +125,7 @@ export class BotService {
             }),
             concatMap((spreadSheetDto: SpreadSheetDto) => {
                 // Here you can add logic to update the database with the new spreadsheet data
-                return this.dbservice.upsertSpreadsheet(spreadSheetDto).pipe(
+                return this.questionRepository.upsertSpreadsheet(spreadSheetDto).pipe(
                     map(() => spreadSheetDto)
                 );
             }),
@@ -161,7 +162,7 @@ export class BotService {
     private handleTopicsCommand(context: Context): Observable<boolean> {
         console.log("Topics command handled");
 
-        return this.dbservice.getAllTopics().pipe(
+        return this.questionRepository.getAllTopics().pipe(
             map((topics: Array<{ sheet_id: number, title: string }>) => {
                 console.log("Available topics:", topics);
                 const buttons = topics.map(topic => Markup.button.callback(topic.title, `${topic.sheet_id}`));

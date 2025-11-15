@@ -1,6 +1,6 @@
 import { delay, of, tap } from 'rxjs';
 import { Context } from 'telegraf';
-import { DatabaseService } from '../db/database-sevice';
+import { QuestionsRepository } from '../db/questions-repository';
 import { Question } from '../models/question';
 
 interface UserState {
@@ -9,9 +9,12 @@ interface UserState {
 }
 
 export class QuizManager {
-  private repo = DatabaseService.getInstance();
+  private repo = new QuestionsRepository();
   private users = new Map<number, UserState>();
 
+  constructor(questionRepository: QuestionsRepository) {
+    this.repo = questionRepository;
+  }
 
   public startTopic$(ctx: Context, topic: string) {
     const userId = ctx.from?.id;
@@ -26,7 +29,7 @@ export class QuizManager {
           return;
         }
         this.users.set(userId, { sheetId, currentQuestion: question });
-        ctx.reply(`🧩: ${question.row_data[0]}`);
+        ctx.reply(`🧩: ${question.question}`);
       })
     );
   }
@@ -39,15 +42,15 @@ export class QuizManager {
     if (!userId) return of(null);
 
     const state = this.users.get(userId);
-    if (!state || !state.currentQuestion || !state.currentQuestion.row_data) {
+    if (!state || !state.currentQuestion || !state.currentQuestion.question) {
       ctx.reply('❗ Сначала выберите тему: /topics');
       return of(null);
     }
-    const rightAnswer = state.currentQuestion.row_data[1] || '';
+    const rightAnswer = state.currentQuestion.answer || '';
     const userAnswer = ctx.message && 'text' in ctx.message ? ctx.message.text.trim() : '';
     const correct = userAnswer.toLowerCase() === rightAnswer.toLowerCase();
 
-    ctx.reply(correct ? '✅ Richtig!' : `❌ ${state.currentQuestion.row_data?.[1]}`);
+    ctx.reply(correct ? '✅ Richtig!' : `❌ ${state.currentQuestion.answer}`);
 
     // загружаем следующий вопрос
     return this.repo.getNextQuestion(state.sheetId!).pipe(
@@ -55,7 +58,7 @@ export class QuizManager {
       tap(nextQuestion => {
         if (nextQuestion) {
           this.users.set(userId, { sheetId: state.sheetId ?? 0, currentQuestion: nextQuestion });
-          ctx.reply(`${nextQuestion.row_data[0]}`);
+          ctx.reply(`${nextQuestion.question}`);
         } else {
           ctx.reply('🏁');
         }
