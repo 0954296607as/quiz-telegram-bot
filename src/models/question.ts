@@ -5,10 +5,16 @@ export class Question extends BaseModel {
   sheetFk?: number;
   rowIndex?: number;
   question?: string;
-  answer?: string
   createdAt: Date | undefined;
   updatedAt: Date | undefined;
+  answer?: string
 
+  public parseQuestion(): string {
+    if (this.question && this.question.includes('___')) {
+      return this.question.replace('___', `<b><u><tg-spoiler>${this.answer ?? ''}</tg-spoiler></u></b>`);
+    }
+    return this.question ?? '';
+  }
 
   public toString(): string {
     return `Q: ${this.question} A: ${this.answer}`;

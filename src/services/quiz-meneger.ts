@@ -25,11 +25,11 @@ export class QuizManager {
     return this.repo.getNextQuestion(sheetId).pipe(
       tap((question: Question | undefined) => {
         if (!question) {
-          ctx.reply(`⚠️ "${topic}"`);
+          this.sendMessage(ctx, `🎯 Thema: <b>${topic}</b>`);
           return;
         }
         this.users.set(userId, { sheetId, currentQuestion: question });
-        ctx.reply(`🧩: ${question.question}`);
+        this.sendMessage(ctx, `🧩: ${question!.parseQuestion()}`);
       })
     );
   }
@@ -43,26 +43,28 @@ export class QuizManager {
 
     const state = this.users.get(userId);
     if (!state || !state.currentQuestion || !state.currentQuestion.question) {
-      ctx.reply('❗ Сначала выберите тему: /topics');
+      this.sendMessage(ctx, '❗ Keine Frage ausgewählt. Bitte wähle ein Thema: /topics');
       return of(null);
     }
     const rightAnswer = state.currentQuestion.answer || '';
     const userAnswer = ctx.message && 'text' in ctx.message ? ctx.message.text.trim() : '';
     const correct = userAnswer.toLowerCase() === rightAnswer.toLowerCase();
-
-    ctx.reply(correct ? '✅ Richtig!' : `❌ ${state.currentQuestion.answer}`);
-
+    this.sendMessage(ctx, correct ? '✅ Richtig!' : `❌ ${state.currentQuestion.answer}`)
     // загружаем следующий вопрос
     return this.repo.getNextQuestion(state.sheetId!).pipe(
       delay(300),
-      tap(nextQuestion => {
+      tap((nextQuestion: Question | undefined) => {
         if (nextQuestion) {
           this.users.set(userId, { sheetId: state.sheetId ?? 0, currentQuestion: nextQuestion });
-          ctx.reply(`${nextQuestion.question}`);
+          this.sendMessage(ctx, `🧩: ${nextQuestion!.parseQuestion()}`);
         } else {
-          ctx.reply('🏁');
+          this.sendMessage(ctx, '🎉 Du hast alle Fragen in diesem Thema beantwortet!');
         }
       })
     );
+  }
+
+  private sendMessage(ctx: Context, message: string) {
+    ctx.reply(message, { parse_mode: 'HTML' });
   }
 }
